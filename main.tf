@@ -2,9 +2,9 @@
 terraform {
   backend "remote" {
     hostname = "my.scalr.com"
-    organization = "xxxxxxxxxx"
+    organization = "org-sfgari365m7sck0"
     workspaces {
-      name = "aws_eks_wordpress"
+      name = "aws_eks_cluster"
     }
   }
 }
@@ -64,25 +64,32 @@ resource "aws_security_group" "sg_cluster" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
   tags = {
     Name = "${var.cluster_name}-sg"
   }
 }
-
-/*
-# OPTIONAL: Allow inbound traffic from your local workstation external IP
-#           to the Kubernetes. You will need to replace A.B.C.D below with
-#           your real IP. Services like icanhazip.com can help you find this.
-resource "aws_security_group_rule" "demo-cluster-ingress-workstation-https" {
-  cidr_blocks       = ["A.B.C.D/32"]
-  description       = "Allow workstation to communicate with the cluster API Server"
-  from_port         = 443
-  protocol          = "tcp"
-  security_group_id = "${aws_security_group.demo-cluster.id}"
-  to_port           = 443
-  type              = "ingress"
-}
-*/
 
 /*
 The master cluster
@@ -93,7 +100,7 @@ resource "aws_eks_cluster" "cluster_1" {
   role_arn        = "${aws_iam_role.iam_role_cluster.arn}"
 
   vpc_config {
-    security_group_ids = ["${aws_security_group.sg_cluster.id}"]
+    security_group_ids = ["${aws_security_group.sg_cluster.id}", "${aws_vpc.eks_vpc.default_security_group_id}"]
     subnet_ids         = "${aws_subnet.eks_subnet.*.id}"
   }
 
@@ -103,9 +110,7 @@ resource "aws_eks_cluster" "cluster_1" {
   ]
 }
 
-
 # kubectl config
-
 
 locals {
   kubeconfig = <<KUBECONFIG
@@ -199,6 +204,28 @@ resource "aws_security_group" "sg_worker" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
   tags = {
     "Name"                                      = "${var.cluster_name}-sg-worker"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
@@ -256,7 +283,9 @@ resource "aws_eks_node_group" "eks_node_group" {
 
   remote_access {
     ec2_ssh_key = var.key_name
+    source_security_group_ids = [ "${aws_vpc.eks_vpc.default_security_group_id}" ]
   }
+
 }
 
 output "eks_kubeconfig" {
