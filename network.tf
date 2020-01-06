@@ -15,7 +15,7 @@
    cidr_block = "10.0.0.0/16"
 
    tags = {
-     "Name"                                      = "${var.cluster_name}-vpc"
+     "Name"                                      = "${var.cluster_name}-vpc-${random_string.random.result}"
      "kubernetes.io/cluster/${var.cluster_name}" = "shared"
    }
  }
@@ -23,13 +23,13 @@
  resource "aws_subnet" "eks_subnet" {
 #   count = local.azs
    count = var.number_of_azs <= length(data.aws_availability_zones.available.names) ? var.number_of_azs : length(data.aws_availability_zones.available.names)
-   
+
    availability_zone = data.aws_availability_zones.available.names[count.index]
    cidr_block        = "10.0.${count.index}.0/24"
    vpc_id            = aws_vpc.eks_vpc.id
 
    tags = {
-     "Name"                                      = "${var.cluster_name}-subnet"
+     "Name"                                      = "${var.cluster_name}-subnet-${random_string.random.result}"
      "kubernetes.io/cluster/${var.cluster_name}" = "shared"
    }
  }
@@ -38,7 +38,7 @@
    vpc_id = aws_vpc.eks_vpc.id
 
    tags = {
-     Name = "${var.cluster_name}-igw"
+     Name = "${var.cluster_name}-igw-${random_string.random.result}"
    }
  }
 

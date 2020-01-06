@@ -10,8 +10,6 @@ terraform {
 }
 
 provider "aws" {
-    access_key = "${var.scalr_aws_access_key}"
-    secret_key = "${var.scalr_aws_secret_key}"
     region     = var.region
 }
 
@@ -19,8 +17,15 @@ provider "aws" {
 Create the IAM policy and roles for the cluster
 */
 
+resource "random_string" "random" {
+  length = 6
+  special = false
+  upper = false
+  number = false
+}
+
 resource "aws_iam_role" "iam_role_cluster" {
-  name = "${var.cluster_name}-iam-role"
+  name = "${var.cluster_name}-iam-role-${random_string.random.result}"
 
   assume_role_policy = <<POLICY
 {
@@ -53,7 +58,7 @@ Security rules to allow access to the cluster
 */
 
 resource "aws_security_group" "sg_cluster" {
-  name        = "terraform-eks-demo-cluster"
+  name        = "eks-demo-cluster-${random_string.random.result}"
   description = "Cluster communication with worker nodes"
   vpc_id      = "${aws_vpc.eks_vpc.id}"
 
